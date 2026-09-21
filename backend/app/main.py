@@ -28,6 +28,17 @@ from .analysis import (
 )
 from .database import Base, engine, get_db
 from .explanation_service import explain_question
+from .mock_service import (
+    answer_mock_question,
+    finish_mock,
+    get_mock_configuration,
+    get_mock_session,
+    list_mocks,
+    mock_result,
+    mock_review,
+    start_mock,
+    submit_mock_section,
+)
 from .practice_service import create_session, finish_session, get_session, submit_answer
 from .performance_service import (
     difficulty_performance,
@@ -54,6 +65,12 @@ from .schemas import (
     PracticeSummary,
     QuestionBlueprint,
     ValidatedQuestionResponse,
+    MockAnswerRequest,
+    MockConfigurationResponse,
+    MockResultResponse,
+    MockReviewResponse,
+    MockSessionResponse,
+    MockStartRequest,
 )
 from .validated_question_service import generate_validated_question_or_http
 
@@ -281,6 +298,64 @@ def finish_practice_session(
 ) -> PracticeSummary:
     """End a session and return its score summary."""
     return finish_session(db, session_id)
+
+
+@app.get("/mocks", response_model=list[MockConfigurationResponse])
+def get_available_mocks(db: Session = Depends(get_db)) -> list[MockConfigurationResponse]:
+    """List configurable mock definitions."""
+    return list_mocks(db)
+
+
+@app.get("/mocks/config/{mock_id}", response_model=MockConfigurationResponse)
+def get_mock_config(mock_id: str, db: Session = Depends(get_db)) -> MockConfigurationResponse:
+    """Return one mock configuration without starting a session."""
+    config = get_mock_configuration(db, mock_id)
+    return MockConfigurationResponse(
+        mock_id=config.mock_id,
+        title=config.title,
+        total_questions=config.total_questions,
+        sections=config.sections,
+        section_order=config.section_order,
+        section_time_limit=config.section_time_limit,
+        total_time_limit=config.total_time_limit,
+        question_ids=config.question_ids or [],
+        status=config.status,
+    )
+
+
+@app.post("/mocks/start", response_model=MockSessionResponse)
+def start_mock_endpoint(request: MockStartRequest, db: Session = Depends(get_db)) -> MockSessionResponse:
+    return start_mock(db, request)
+
+
+@app.get("/mocks/{mock_session_id}", response_model=MockSessionResponse)
+def get_mock_session_endpoint(mock_session_id: int, db: Session = Depends(get_db)) -> MockSessionResponse:
+    return get_mock_session(db, mock_session_id)
+
+
+@app.post("/mocks/{mock_session_id}/answer", response_model=MockSessionResponse)
+def answer_mock_endpoint(mock_session_id: int, request: MockAnswerRequest, db: Session = Depends(get_db)) -> MockSessionResponse:
+    return answer_mock_question(db, mock_session_id, request)
+
+
+@app.post("/mocks/{mock_session_id}/submit-section", response_model=MockSessionResponse)
+def submit_mock_section_endpoint(mock_session_id: int, db: Session = Depends(get_db)) -> MockSessionResponse:
+    return submit_mock_section(db, mock_session_id)
+
+
+@app.post("/mocks/{mock_session_id}/finish", response_model=MockResultResponse)
+def finish_mock_endpoint(mock_session_id: int, db: Session = Depends(get_db)) -> MockResultResponse:
+    return finish_mock(db, mock_session_id)
+
+
+@app.get("/mocks/{mock_session_id}/result", response_model=MockResultResponse)
+def get_mock_result_endpoint(mock_session_id: int, db: Session = Depends(get_db)) -> MockResultResponse:
+    return mock_result(db, mock_session_id)
+
+
+@app.get("/mocks/{mock_session_id}/review", response_model=MockReviewResponse)
+def get_mock_review_endpoint(mock_session_id: int, db: Session = Depends(get_db)) -> MockReviewResponse:
+    return mock_review(db, mock_session_id)
 
 
 @app.get("/performance/overview")

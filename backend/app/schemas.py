@@ -323,3 +323,135 @@ class PracticeSummary(BaseModel):
     accuracy: float
     total_time_seconds: int
     average_time_per_attempted_question_seconds: float
+
+
+MOCK_STATES = {"NOT_STARTED", "IN_PROGRESS", "SECTION_COMPLETE", "COMPLETED", "ABANDONED"}
+
+
+class MockConfigurationResponse(BaseModel):
+    """Public, configurable mock definition."""
+
+    mock_id: str
+    title: str
+    total_questions: int
+    sections: dict[str, int]
+    section_order: list[str]
+    section_time_limit: dict[str, int]
+    total_time_limit: int
+    question_ids: list[int]
+    status: str
+
+
+class MockStartRequest(BaseModel):
+    mock_id: str
+
+
+class MockAnswerRequest(BaseModel):
+    """Answer or mark one question while the mock is active."""
+
+    question_id: int
+    selected_answer: str | None = None
+    marked_for_review: bool = False
+    time_spent_seconds: int = Field(default=0, ge=0)
+
+    @field_validator("selected_answer")
+    @classmethod
+    def validate_mock_answer(cls, value: str | None) -> str | None:
+        if value is None:
+            return value
+        answer = value.upper()
+        if answer not in {"A", "B", "C", "D"}:
+            raise ValueError("selected_answer must be A, B, C, or D")
+        return answer
+
+
+class MockQuestionResponse(BaseModel):
+    """Question presented during an active mock, with answer keys hidden."""
+
+    question_id: int
+    question_order: int
+    section: str
+    topic: str
+    subtopic: str | None
+    difficulty: str
+    question_text: str
+    options: dict[str, str]
+    answered: bool
+    selected_answer: str | None
+    marked_for_review: bool
+
+
+class MockSessionResponse(BaseModel):
+    """Current server-authoritative mock state."""
+
+    id: int
+    mock_id: str
+    title: str
+    status: str
+    current_section: str | None
+    section_order: list[str]
+    section_remaining_seconds: int
+    total_elapsed_seconds: int
+    total_time_limit: int
+    questions: list[MockQuestionResponse]
+
+
+class MockSectionResult(BaseModel):
+    section: str
+    attempted: int
+    correct: int
+    incorrect: int
+    unanswered: int
+    accuracy: float
+    time_used_seconds: int
+
+
+class MockTopicResult(BaseModel):
+    topic: str
+    attempted: int
+    correct: int
+    accuracy: float
+
+
+class MockDifficultyResult(BaseModel):
+    difficulty: str
+    attempted: int
+    correct: int
+    accuracy: float
+
+
+class MockResultResponse(BaseModel):
+    mock_session_id: int
+    status: str
+    attempted: int
+    correct: int
+    incorrect: int
+    unanswered: int
+    accuracy: float
+    total_time_seconds: int
+    sections: list[MockSectionResult]
+    topics: list[MockTopicResult]
+    difficulties: list[MockDifficultyResult]
+    strongest_section: str | None
+    weakest_section: str | None
+    strongest_topics: list[str]
+    topics_needing_practice: list[str]
+    time_management_observations: list[str]
+
+
+class MockReviewQuestionResponse(BaseModel):
+    question_id: int
+    question_order: int
+    section: str
+    topic: str
+    question_text: str
+    options: dict[str, str]
+    selected_answer: str | None
+    correct_answer: str
+    is_correct: bool
+    explanation: ExplanationResponse
+
+
+class MockReviewResponse(BaseModel):
+    mock_session_id: int
+    questions: list[MockReviewQuestionResponse]

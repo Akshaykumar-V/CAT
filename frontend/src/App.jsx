@@ -5,6 +5,10 @@ import PerformanceView from "./views/PerformanceView";
 import PracticeView from "./views/PracticeView";
 import ResultsView from "./views/ResultsView";
 import SetupView from "./views/SetupView";
+import MockSelectionView from "./views/MockSelectionView";
+import MockTestView from "./views/MockTestView";
+import MockResultView from "./views/MockResultView";
+import MockReviewView from "./views/MockReviewView";
 
 const EMPTY_DASHBOARD = {
   overall: {
@@ -27,6 +31,7 @@ function AppHeader({ view, onNavigate }) {
   const navItems = [
     ["dashboard", "Dashboard"],
     ["performance", "Performance"],
+    ["mocks", "Full mock"],
   ];
 
   return (
@@ -80,6 +85,10 @@ export default function App() {
   const [recommendation, setRecommendation] = useState(null);
   const [topics, setTopics] = useState([]);
   const [patterns, setPatterns] = useState(null);
+  const [mockSession, setMockSession] = useState(null);
+  const [mockResult, setMockResult] = useState(null);
+  const [mockReview, setMockReview] = useState(null);
+  const [mockSessionId, setMockSessionId] = useState(null);
   const [session, setSession] = useState(null);
   const [result, setResult] = useState(null);
   const [resultTopics, setResultTopics] = useState([]);
@@ -136,6 +145,52 @@ export default function App() {
     loadStudyData();
   };
 
+  const startMock = async (mockId) => {
+    const nextMock = await api.startMock({ mock_id: mockId });
+    setMockSession(nextMock);
+    setMockSessionId(nextMock.id);
+    setMockResult(null);
+    setMockReview(null);
+    setView("mock");
+  };
+
+  const refreshMock = async () => {
+    const nextMock = await api.getMockSession(mockSession.id);
+    setMockSession(nextMock);
+    if (nextMock.status === "COMPLETED") {
+      const nextResult = await api.getMockResult(mockSession.id);
+      setMockResult(nextResult);
+      setMockSession(null);
+      setView("mock-result");
+    }
+    return nextMock;
+  };
+
+  const answerMock = async (body) => {
+    const nextMock = await api.answerMock(mockSession.id, body);
+    setMockSession(nextMock);
+    return nextMock;
+  };
+
+  const submitMockSection = async () => {
+    await api.submitMockSection(mockSession.id);
+    return refreshMock();
+  };
+
+  const finishMock = async () => {
+    const nextResult = await api.finishMock(mockSession.id);
+    setMockResult(nextResult);
+    setMockSessionId(mockSession.id);
+    setMockSession(null);
+    setView("mock-result");
+  };
+
+  const openMockReview = async () => {
+    const nextReview = await api.getMockReview(mockSessionId);
+    setMockReview(nextReview);
+    setView("mock-review");
+  };
+
   const navigate = (nextView) => {
     setError("");
     setView(nextView);
@@ -145,7 +200,7 @@ export default function App() {
     return <div className="app-frame"><LoadingState /></div>;
   }
 
-  if (error && !session) {
+  if (error && !session && !mockSession) {
     return (
       <div className="app-frame">
         <AppHeader view={view} onNavigate={navigate} />
@@ -171,6 +226,18 @@ export default function App() {
         )}
         {view === "setup" && (
           <SetupView onStart={startSession} onBack={() => setView("dashboard")} starting={starting} />
+        )}
+        {view === "mocks" && (
+          <MockSelectionView onStart={startMock} onBack={() => setView("dashboard")} />
+        )}
+        {view === "mock" && mockSession && (
+          <MockTestView session={mockSession} onAnswer={answerMock} onRefresh={refreshMock} onSubmitSection={submitMockSection} onFinish={finishMock} />
+        )}
+        {view === "mock-result" && (
+          <MockResultView result={mockResult} onReview={openMockReview} onDashboard={() => { loadStudyData(); setView("dashboard"); }} onRetry={() => setView("mocks")} />
+        )}
+        {view === "mock-review" && (
+          <MockReviewView review={mockReview} onBack={() => setView("mock-result")} />
         )}
         {view === "practice" && session && (
           <PracticeView session={session} onFinish={finishSession} onExit={() => setView("dashboard")} />

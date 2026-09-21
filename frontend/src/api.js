@@ -52,6 +52,15 @@ export const api = {
   performanceDashboard: () => get("/performance/dashboard"),
   generateQuestion: (body) => post("/questions/generate", body),
   generateQuestionBatch: (body) => post("/questions/generate-batch", body),
+  listMocks: () => get("/mocks"),
+  getMockConfig: (mockId) => get(`/mocks/config/${mockId}`),
+  startMock: (body) => post("/mocks/start", body),
+  getMockSession: (sessionId) => get(`/mocks/${sessionId}`),
+  answerMock: (sessionId, body) => post(`/mocks/${sessionId}/answer`, body),
+  submitMockSection: (sessionId) => post(`/mocks/${sessionId}/submit-section`),
+  finishMock: (sessionId) => post(`/mocks/${sessionId}/finish`),
+  getMockResult: (sessionId) => get(`/mocks/${sessionId}/result`),
+  getMockReview: (sessionId) => get(`/mocks/${sessionId}/review`),
 };
 
 export { API_BASE_URL, request };
