@@ -6,6 +6,9 @@ const formatClock = (seconds) => `${Math.floor(seconds / 60).toString().padStart
 export default function PracticeView({ session, onFinish, onExit }) {
   const [current, setCurrent] = useState(0);
   const [answers, setAnswers] = useState(() => Object.fromEntries(session.questions.filter((question) => question.selected_answer).map((question) => [question.question_id, question.selected_answer])));
+  const [answerResults, setAnswerResults] = useState({});
+  const [explanations, setExplanations] = useState({});
+  const [loadingExplanation, setLoadingExplanation] = useState(false);
   const [remaining, setRemaining] = useState(Math.max(0, session.time_limit_seconds - Math.floor((Date.now() - new Date(session.started_at).getTime()) / 1000)));
   const [saving, setSaving] = useState(false);
   const [finishing, setFinishing] = useState(false);
@@ -28,7 +31,8 @@ export default function PracticeView({ session, onFinish, onExit }) {
     setSaving(true);
     setError("");
     try {
-      await api.submitAnswer(session.id, { question_id: question.question_id, selected_answer: label, time_spent_seconds: Math.max(0, session.time_limit_seconds - remaining) });
+      const response = await api.submitAnswer(session.id, { question_id: question.question_id, selected_answer: label, time_spent_seconds: Math.max(0, session.time_limit_seconds - remaining) });
+      setAnswerResults((previous) => ({ ...previous, [question.question_id]: response }));
     } catch (requestError) {
       setAnswers((previous) => {
         const next = { ...previous };
@@ -38,6 +42,20 @@ export default function PracticeView({ session, onFinish, onExit }) {
       setError(requestError.message);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const showExplanation = async () => {
+    if (!answers[question.question_id] || loadingExplanation) return;
+    setLoadingExplanation(true);
+    setError("");
+    try {
+      const explanation = await api.requestExplanation(question.question_id, { selected_answer: answers[question.question_id] });
+      setExplanations((previous) => ({ ...previous, [question.question_id]: explanation }));
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setLoadingExplanation(false);
     }
   };
 
@@ -59,7 +77,7 @@ export default function PracticeView({ session, onFinish, onExit }) {
       {error && <div className="inline-error" role="alert">{error}</div>}
       <div className="question-layout">
         <aside className="question-index panel"><p className="eyebrow">Question map</p><div className="question-grid">{session.questions.map((item, index) => <button key={item.question_id} className={`${index === current ? "current " : ""}${answers[item.question_id] ? "answered" : ""}`} onClick={() => setCurrent(index)} aria-label={`Question ${index + 1}${answers[item.question_id] ? ", answered" : ", unanswered"}`}>{String(index + 1).padStart(2, "0")}</button>)}</div><div className="legend"><span><i className="legend-current" /> Current</span><span><i className="legend-answered" /> Answered</span></div></aside>
-        <section className="question-card"><div className="question-meta"><span>Question {String(current + 1).padStart(2, "0")}</span><span>{session.section} · {session.difficulty}</span></div><h1>{question.question_text}</h1><div className="options" role="group" aria-label="Answer options">{Object.entries(question.options).map(([label, text]) => <button key={label} className={answers[question.question_id] === label ? "option selected" : "option"} onClick={() => chooseAnswer(label)} disabled={Boolean(answers[question.question_id]) || saving}><span className="option-label">{label}</span><span>{text}</span>{answers[question.question_id] === label && <span className="option-check">✓</span>}</button>)}</div><div className="question-actions"><button className="button button-outline" disabled={current === 0} onClick={() => setCurrent((value) => value - 1)}>← Previous</button>{current < session.questions.length - 1 ? <button className="button button-dark" onClick={() => setCurrent((value) => value + 1)}>Next question →</button> : <button className="button button-coral" disabled={finishing} onClick={finish}>{finishing ? "Finishing..." : "Finish practice"}</button>}</div></section>
+        <section className="question-card"><div className="question-meta"><span>Question {String(current + 1).padStart(2, "0")}</span><span>{session.section} · {session.difficulty}</span></div><h1>{question.question_text}</h1><div className="options" role="group" aria-label="Answer options">{Object.entries(question.options).map(([label, text]) => <button key={label} className={answers[question.question_id] === label ? "option selected" : "option"} onClick={() => chooseAnswer(label)} disabled={Boolean(answers[question.question_id]) || saving}><span className="option-label">{label}</span><span>{text}</span>{answers[question.question_id] === label && <span className="option-check">✓</span>}</button>)}</div>{answerResults[question.question_id] && <div className={answerResults[question.question_id].is_correct ? "answer-feedback correct" : "answer-feedback incorrect"} role="status"><strong>{answerResults[question.question_id].is_correct ? "Correct" : "Incorrect"}</strong><span>{explanations[question.question_id]?.correct_answer ? `Correct answer: ${explanations[question.question_id].correct_answer}` : "Your answer has been recorded."}</span><button className="button button-outline" onClick={showExplanation} disabled={loadingExplanation}>{loadingExplanation ? "Loading..." : explanations[question.question_id] ? "Explanation shown" : "Show Explanation"}</button></div>}{explanations[question.question_id] && <article className="explanation-panel"><div className="explanation-heading"><p className="eyebrow">Explanation mode</p><h2>{explanations[question.question_id].short_answer}</h2></div><p>{explanations[question.question_id].approach}</p><ol>{explanations[question.question_id].steps.map((step) => <li key={step}>{step}</li>)}</ol><div className="explanation-grid"><div><strong>Shortcut</strong><p>{explanations[question.question_id].shortcut}</p></div><div><strong>Common mistake</strong><p>{explanations[question.question_id].common_mistake}</p></div></div></article>}<div className="question-actions"><button className="button button-outline" disabled={current === 0} onClick={() => setCurrent((value) => value - 1)}>← Previous</button>{current < session.questions.length - 1 ? <button className="button button-dark" onClick={() => setCurrent((value) => value + 1)}>Next question →</button> : <button className="button button-coral" disabled={finishing} onClick={finish}>{finishing ? "Finishing..." : "Finish practice"}</button>}</div></section>
       </div>
     </div>
   );

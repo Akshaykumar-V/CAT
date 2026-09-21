@@ -33,4 +33,23 @@ describe("API client", () => {
 
     await expect(api.getSession(99)).rejects.toThrow("Practice session not found");
   });
+
+  it("requests an explanation with the submitted answer", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ result: "incorrect", correct_answer: "B" }),
+      }),
+    );
+
+    await expect(api.requestExplanation(12, { selected_answer: "C" })).resolves.toEqual({
+      result: "incorrect",
+      correct_answer: "B",
+    });
+    expect(fetch).toHaveBeenCalledWith(
+      "http://127.0.0.1:8000/questions/12/explanation",
+      expect.objectContaining({ method: "POST", body: JSON.stringify({ selected_answer: "C" }) }),
+    );
+  });
 });

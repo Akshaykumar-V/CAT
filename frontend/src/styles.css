@@ -159,6 +159,21 @@ select { width: 100%; height: 45px; padding: 0 12px; border: 1px solid var(--lin
 .option.selected .option-label { color: white; border-color: var(--teal); background: var(--teal); }
 .option-check { margin-left: auto; color: var(--teal); font-weight: 800; }
 .question-actions { display: flex; justify-content: space-between; gap: 12px; margin-top: 40px; }
+.answer-feedback { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; margin-top: 24px; padding: 14px; border: 1px solid var(--line); border-radius: 5px; font-size: 12px; }
+.answer-feedback.correct { border-color: #a9d4cd; background: var(--teal-soft); }
+.answer-feedback.incorrect { border-color: #efb4a6; background: var(--coral-soft); }
+.answer-feedback strong { font-size: 13px; }
+.answer-feedback span { color: var(--muted); }
+.explanation-panel { margin-top: 14px; padding: 22px; border-left: 3px solid var(--teal); background: #f3f8f5; color: var(--ink); font-size: 12px; line-height: 1.6; }
+.explanation-heading { margin-bottom: 15px; }
+.explanation-heading .eyebrow { margin-bottom: 6px; }
+.explanation-heading h2 { font-size: 17px; }
+.explanation-panel ol { padding-left: 20px; }
+.explanation-panel li { padding-left: 5px; margin: 7px 0; }
+.explanation-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 17px; }
+.explanation-grid div { padding-top: 13px; border-top: 1px solid #cfe1dc; }
+.explanation-grid strong { font-size: 11px; }
+.explanation-grid p { color: var(--muted); margin: 5px 0 0; }
 .results-layout { width: min(980px, 100%); margin: 0 auto; display: grid; gap: 25px; }
 .score-stamp { display: grid; place-items: center; width: 120px; height: 120px; border: 1px solid var(--coral); border-radius: 50%; color: var(--coral); background: var(--coral-soft); transform: rotate(5deg); }
 .score-stamp strong { font-size: 32px; letter-spacing: -.08em; line-height: 1; }
@@ -201,6 +216,8 @@ select { width: 100%; height: 45px; padding: 0 12px; border: 1px solid var(--lin
   .question-card h1 { margin: 32px 0 27px; font-size: 25px; }
   .question-meta { flex-direction: column; gap: 7px; }
   .question-actions { margin-top: 28px; }
+  .answer-feedback { grid-template-columns: 1fr; }
+  .explanation-grid { grid-template-columns: 1fr; }
   .question-actions .button { padding: 0 12px; }
   .practice-topbar { flex-wrap: wrap; }
   .practice-count { order: 3; width: 100%; }

@@ -39,6 +39,8 @@ export const api = {
   getRecommendation: (section) => get(`/practice/recommendation${section ? `?section=${section}` : ""}`),
   getSession: (sessionId) => get(`/practice/${sessionId}`),
   submitAnswer: (sessionId, body) => post(`/practice/${sessionId}/answer`, body),
+  getExplanation: (questionId) => get(`/questions/${questionId}/explanation`),
+  requestExplanation: (questionId, body) => post(`/questions/${questionId}/explanation`, body),
   finishSession: (sessionId) => post(`/practice/${sessionId}/finish`),
   performanceOverview: () => get("/performance/overview"),
   performanceSections: () => get("/performance/sections"),

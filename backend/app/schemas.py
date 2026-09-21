@@ -265,6 +265,50 @@ class PracticeAnswerResponse(BaseModel):
     answered_at: datetime
 
 
+class ExplanationRequest(BaseModel):
+    """Optional student answer supplied when requesting an explanation."""
+
+    selected_answer: str | None = None
+
+    @field_validator("selected_answer")
+    @classmethod
+    def validate_explanation_answer(cls, value: str | None) -> str | None:
+        if value is None:
+            return value
+        answer = value.upper()
+        if answer not in {"A", "B", "C", "D"}:
+            raise ValueError("selected_answer must be A, B, C, or D")
+        return answer
+
+
+class ExplanationResponse(BaseModel):
+    """Verified educational explanation for an answered question."""
+
+    question_id: int
+    correct_answer: str
+    short_answer: str
+    concept: str
+    approach: str
+    steps: list[str] = Field(min_length=1)
+    shortcut: str
+    common_mistake: str
+    difficulty_note: str
+    selected_answer: str | None = None
+    result: Literal["correct", "incorrect"] | None = None
+
+
+class ExplanationDraft(BaseModel):
+    """Provider-generated explanation fields before server-side verification."""
+
+    short_answer: str
+    concept: str
+    approach: str
+    steps: list[str] = Field(min_length=1)
+    shortcut: str
+    common_mistake: str
+    difficulty_note: str
+
+
 class PracticeSummary(BaseModel):
     """Scored summary returned when a session is finished or expires."""
 

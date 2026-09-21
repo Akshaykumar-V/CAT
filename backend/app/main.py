@@ -20,6 +20,7 @@ from .analysis import (
     topic_trends,
 )
 from .database import Base, engine, get_db
+from .explanation_service import explain_question
 from .practice_service import create_session, finish_session, get_session, submit_answer
 from .performance_service import (
     difficulty_performance,
@@ -37,6 +38,8 @@ from .schemas import (
     QuestionGenerationRequest,
     AdaptivePracticeStartRequest,
     AIQuestionResponse,
+    ExplanationRequest,
+    ExplanationResponse,
     PracticeAnswerRequest,
     PracticeAnswerResponse,
     PracticeSessionResponse,
@@ -155,6 +158,24 @@ def generate_ai_question_endpoint(
 ) -> AIQuestionResponse:
     """Generate an original question with an optional LLM and safe fallback."""
     return generate_ai_question(request)
+
+
+@app.get("/questions/{question_id}/explanation", response_model=ExplanationResponse)
+def get_question_explanation(
+    question_id: int, db: Session = Depends(get_db)
+) -> ExplanationResponse:
+    """Return an explanation only after the question has been answered."""
+    return explain_question(db, question_id)
+
+
+@app.post("/questions/{question_id}/explanation", response_model=ExplanationResponse)
+def post_question_explanation(
+    question_id: int,
+    request: ExplanationRequest,
+    db: Session = Depends(get_db),
+) -> ExplanationResponse:
+    """Return a student-specific explanation after answer submission."""
+    return explain_question(db, question_id, request.selected_answer)
 
 
 @app.post("/practice/start", response_model=PracticeSessionResponse)

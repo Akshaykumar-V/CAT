@@ -8,8 +8,8 @@ from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
-from .prompt_builder import build_question_prompt
-from .schemas import GeneratedQuestion, QuestionBlueprint
+from .prompt_builder import build_explanation_prompt, build_question_prompt
+from .schemas import ExplanationDraft, GeneratedQuestion, QuestionBlueprint
 
 
 class LLMProviderError(RuntimeError):
@@ -22,6 +22,10 @@ class LLMProvider(ABC):
     @abstractmethod
     def generate_question(self, blueprint: QuestionBlueprint) -> GeneratedQuestion:
         """Generate one structured original question."""
+
+    def generate_explanation(self, question: dict[str, str]) -> ExplanationDraft:
+        """Generate a structured explanation for one supplied question."""
+        raise LLMProviderError("This provider does not support explanations")
 
 
 @dataclass(frozen=True)
@@ -103,6 +107,35 @@ class EnvironmentLLMProvider(LLMProvider):
             return GeneratedQuestion.model_validate(_extract_json_payload(response_payload))
         except (TypeError, ValueError) as error:
             raise LLMProviderError("LLM response did not match the question schema") from error
+
+    def generate_explanation(self, question: dict[str, str]) -> ExplanationDraft:
+        body = {
+            "model": self.settings.model,
+            "temperature": 0.2,
+            "messages": [
+                {"role": "system", "content": "Return only valid JSON matching the requested schema."},
+                {"role": "user", "content": build_explanation_prompt(question)},
+            ],
+            "response_format": {"type": "json_object"},
+        }
+        request = Request(
+            f"{self.settings.base_url}/chat/completions",
+            data=json.dumps(body).encode("utf-8"),
+            headers={
+                "Authorization": f"Bearer {self.settings.api_key}",
+                "Content-Type": "application/json",
+            },
+            method="POST",
+        )
+        try:
+            with urlopen(request, timeout=self.settings.timeout_seconds) as response:
+                response_payload = json.loads(response.read().decode("utf-8"))
+        except (HTTPError, URLError, TimeoutError, OSError, json.JSONDecodeError) as error:
+            raise LLMProviderError("LLM explanation request failed") from error
+        try:
+            return ExplanationDraft.model_validate(_extract_json_payload(response_payload))
+        except (TypeError, ValueError) as error:
+            raise LLMProviderError("LLM response did not match the explanation schema") from error
 
 
 def configured_llm_provider() -> LLMProvider | None:
