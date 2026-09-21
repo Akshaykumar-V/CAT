@@ -6,12 +6,13 @@ This directory holds CAT previous-year-question (PYQ) metadata and any cleaned d
 
 ## PYQ metadata CSV format
 
-Every CSV must include these columns:
+Every metadata CSV must include these columns:
 
 ```text
-year,slot,section,topic,subtopic,difficulty,question_type,question_text,correct_answer,source
+year,slot,section,topic,subtopic,question_type,difficulty,concepts,estimated_time_seconds,pattern_tags,source_reference
 ```
 
 - `section` must be `VARC`, `DILR`, or `QA`.
 - `difficulty` must be `Easy`, `Medium`, or `Hard`.
-- Every field is required in the analysis CSV, including `question_text` and `correct_answer`.
+- `concepts` and `pattern_tags` may contain semicolon-separated values.
+- Metadata files must not contain question text, answer choices, or solution text unless separately licensed or explicitly supplied by the user.

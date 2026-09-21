@@ -3,7 +3,9 @@
 from dataclasses import dataclass
 
 from fastapi import HTTPException
+import pandas as pd
 
+from .analysis import pattern_signal
 from .question_generator import TEMPLATES
 from .schemas import QuestionBlueprint, QuestionGenerationRequest
 
@@ -61,7 +63,9 @@ BLUEPRINT_RULES: dict[tuple[str, str, str], BlueprintRule] = {
 }
 
 
-def generate_blueprint(request: QuestionGenerationRequest) -> QuestionBlueprint:
+def generate_blueprint(
+    request: QuestionGenerationRequest, metadata: pd.DataFrame | None = None
+) -> QuestionBlueprint:
     """Create a blueprint from a supported original-question template."""
     key = (request.section, request.topic, request.subtopic)
     rule = BLUEPRINT_RULES.get(key)
@@ -81,4 +85,6 @@ def generate_blueprint(request: QuestionGenerationRequest) -> QuestionBlueprint:
         information_density=rule.information_density,
         trap_type=rule.trap_type,
         expected_time_seconds=rule.expected_time_seconds + difficulty_rule["time_adjustment"],
+        metadata_signal=pattern_signal(metadata, request.section, request.topic, request.subtopic)
+        if metadata is not None else None,
     )

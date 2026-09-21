@@ -25,6 +25,9 @@ Blueprint:
 - information_density: {blueprint.information_density}
 - trap_type: {blueprint.trap_type}
 - expected_time_seconds: {blueprint.expected_time_seconds}
+- metadata_signal: {blueprint.metadata_signal or "none"}
+
+Metadata signal is descriptive historical context only. Do not treat it as a prediction or copy any source material.
 
 Requirements:
 1. Create an original question that follows the blueprint.

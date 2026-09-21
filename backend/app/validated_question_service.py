@@ -2,6 +2,7 @@
 
 from collections.abc import Callable
 
+import pandas as pd
 from fastapi import HTTPException
 
 from .blueprint_service import generate_blueprint
@@ -27,11 +28,12 @@ def generate_validated_question(
     *,
     max_attempts: int = MAX_REGENERATION_ATTEMPTS,
     generator: QuestionGenerator = generate_question,
+    metadata: pd.DataFrame | None = None,
 ) -> ValidatedQuestionResponse:
     """Generate against one blueprint and retry invalid output a finite number of times."""
     if max_attempts < 1:
         raise ValueError("max_attempts must be at least 1")
-    blueprint = generate_blueprint(request)
+    blueprint = generate_blueprint(request, metadata)
     last_validation = None
     for _ in range(max_attempts):
         question = generator(request)
@@ -51,9 +53,10 @@ def generate_validated_question(
 
 def generate_validated_question_or_http(
     request: QuestionGenerationRequest,
+    metadata: pd.DataFrame | None = None,
 ) -> ValidatedQuestionResponse:
     """Translate exhausted generation into a clear API error."""
     try:
-        return generate_validated_question(request)
+        return generate_validated_question(request, metadata=metadata)
     except ValidationExhaustedError as error:
         raise HTTPException(status_code=422, detail=str(error)) from error

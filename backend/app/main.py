@@ -1,6 +1,6 @@
 """FastAPI application entry point."""
 
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
@@ -10,12 +10,19 @@ from .ai_question_service import generate_ai_question
 from .blueprint_service import generate_blueprint
 from .analysis import (
     analysis_overview,
+    analysis_summary,
     difficulty_distribution,
+    estimated_time_distribution,
+    import_metadata_csv,
     load_pyq_data,
+    pattern_tags_frequency,
     question_type_distribution,
     questions_by_section,
     questions_by_topic,
     section_difficulty_distribution,
+    subtopic_frequency,
+    topic_difficulty_relationship,
+    topic_frequency_by_slot,
     topic_frequency_by_year,
     topic_trends,
 )
@@ -100,6 +107,8 @@ def get_topic_analysis() -> dict[str, object]:
     """Return topic counts and their frequency in each year."""
     return {
         "questions_by_topic": questions_by_topic(pyq_data),
+        "subtopics": subtopic_frequency(pyq_data),
+        "topic_frequency_by_slot": topic_frequency_by_slot(pyq_data),
         "topic_frequency_by_year": topic_frequency_by_year(pyq_data),
     }
 
@@ -120,10 +129,56 @@ def get_topic_trends() -> dict[str, object]:
     return {"topic_trends": topic_trends(pyq_data)}
 
 
+@app.post("/analysis/import-metadata")
+async def import_metadata(request: Request) -> dict[str, object]:
+    """Import metadata from raw CSV text or a JSON ``csv_text`` payload."""
+    global pyq_data
+    content_type = request.headers.get("content-type", "")
+    if "application/json" in content_type:
+        payload = await request.json()
+        csv_text = payload.get("csv_text", "")
+        if not csv_text and "rows" in payload:
+            import pandas as pd
+
+            csv_text = pd.DataFrame(payload["rows"]).to_csv(index=False)
+        source = str(csv_text).encode("utf-8")
+    else:
+        source = await request.body()
+    result = import_metadata_csv(source)
+    if result.report["valid_rows"]:
+        pyq_data = result.data
+    return {"report": result.report, "metadata": result.data.to_dict(orient="records")}
+
+
+@app.get("/analysis/summary")
+def get_analysis_summary() -> dict[str, object]:
+    return analysis_summary(pyq_data)
+
+
+@app.get("/analysis/subtopics")
+def get_subtopic_analysis() -> dict[str, object]:
+    return {"subtopics": subtopic_frequency(pyq_data)}
+
+
+@app.get("/analysis/patterns")
+def get_pattern_analysis() -> dict[str, object]:
+    return {
+        "sections": questions_by_section(pyq_data),
+        "topics": questions_by_topic(pyq_data),
+        "subtopics": subtopic_frequency(pyq_data),
+        "difficulty": difficulty_distribution(pyq_data),
+        "question_types": question_type_distribution(pyq_data),
+        "topic_difficulty": topic_difficulty_relationship(pyq_data),
+        "estimated_time": estimated_time_distribution(pyq_data),
+        "pattern_tags": pattern_tags_frequency(pyq_data),
+        "by_slot": topic_frequency_by_slot(pyq_data),
+    }
+
+
 @app.post("/questions/generate", response_model=GeneratedQuestion)
 def generate_single_question(request: QuestionGenerationRequest) -> GeneratedQuestion:
     """Generate one original CAT-style question from a supported template."""
-    return generate_validated_question_or_http(request).question
+    return generate_validated_question_or_http(request, pyq_data).question
 
 
 @app.post("/questions/generate-batch", response_model=GeneratedQuestionBatch)
@@ -132,7 +187,7 @@ def generate_question_batch(
 ) -> GeneratedQuestionBatch:
     """Generate a requested number of original CAT-style questions."""
     questions = [
-        generate_validated_question_or_http(request).question
+        generate_validated_question_or_http(request, pyq_data).question
         for _ in range(request.count)
     ]
     return GeneratedQuestionBatch(questions=questions)
@@ -141,7 +196,7 @@ def generate_question_batch(
 @app.post("/questions/blueprint", response_model=QuestionBlueprint)
 def create_question_blueprint(request: QuestionGenerationRequest) -> QuestionBlueprint:
     """Return the structural blueprint for a supported original question."""
-    return generate_blueprint(request)
+    return generate_blueprint(request, pyq_data)
 
 
 @app.post("/questions/generate-validated", response_model=ValidatedQuestionResponse)
@@ -149,7 +204,7 @@ def generate_validated_question_endpoint(
     request: QuestionGenerationRequest,
 ) -> ValidatedQuestionResponse:
     """Generate, validate, and return an original question with its blueprint."""
-    return generate_validated_question_or_http(request)
+    return generate_validated_question_or_http(request, pyq_data)
 
 
 @app.post("/questions/generate-ai", response_model=AIQuestionResponse)
@@ -157,7 +212,7 @@ def generate_ai_question_endpoint(
     request: QuestionGenerationRequest,
 ) -> AIQuestionResponse:
     """Generate an original question with an optional LLM and safe fallback."""
-    return generate_ai_question(request)
+    return generate_ai_question(request, metadata=pyq_data)
 
 
 @app.get("/questions/{question_id}/explanation", response_model=ExplanationResponse)

@@ -140,6 +140,7 @@ class QuestionBlueprint(BaseModel):
     information_density: Literal["low", "medium", "high"]
     trap_type: str
     expected_time_seconds: int = Field(ge=15, le=600)
+    metadata_signal: dict[str, object] | None = None
 
 
 class QuestionValidation(BaseModel):

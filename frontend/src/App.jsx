@@ -46,6 +46,7 @@ function AppHeader({ view, onNavigate }) {
           </button>
         ))}
       </nav>
+      <div className="header-context">Personal CAT Practice Dashboard</div>
       <div className="header-status"><span className="status-dot" /> Study mode</div>
     </header>
   );
@@ -78,6 +79,7 @@ export default function App() {
   const [dashboard, setDashboard] = useState(EMPTY_DASHBOARD);
   const [recommendation, setRecommendation] = useState(null);
   const [topics, setTopics] = useState([]);
+  const [patterns, setPatterns] = useState(null);
   const [session, setSession] = useState(null);
   const [result, setResult] = useState(null);
   const [resultTopics, setResultTopics] = useState([]);
@@ -88,11 +90,17 @@ export default function App() {
   const loadStudyData = () => {
     setLoading(true);
     setError("");
-    Promise.all([api.performanceDashboard(), api.getRecommendation(), api.performanceTopics()])
-      .then(([nextDashboard, nextRecommendation, nextTopics]) => {
+    Promise.all([
+      api.performanceDashboard(),
+      api.getRecommendation(),
+      api.performanceTopics(),
+      api.analysisPatterns().catch(() => null),
+    ])
+      .then(([nextDashboard, nextRecommendation, nextTopics, nextPatterns]) => {
         setDashboard(nextDashboard);
         setRecommendation(nextRecommendation);
         setTopics(nextTopics);
+        setPatterns(nextPatterns);
       })
       .catch((requestError) => setError(requestError.message))
       .finally(() => setLoading(false));
@@ -155,6 +163,8 @@ export default function App() {
           <DashboardView
             dashboard={dashboard}
             recommendation={recommendation}
+            topics={topics}
+            patterns={patterns}
             onStart={() => setView("setup")}
             onNavigate={navigate}
           />

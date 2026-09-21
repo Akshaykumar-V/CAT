@@ -1,13 +1,13 @@
-year,slot,section,topic,subtopic,difficulty,question_type,question_text,correct_answer,source
-2020,Slot 1,VARC,Reading Comprehension,Main Idea,Medium,Synthetic MCQ,"Sample passage question about identifying the central argument.",B,Synthetic development record
-2020,Slot 1,VARC,Verbal Ability,Para Jumbles,Medium,Synthetic TITA,"Arrange these four sample sentences into a coherent paragraph.",2314,Synthetic development record
-2020,Slot 2,DILR,Data Interpretation,Tables,Easy,Synthetic MCQ,"A sample table compares monthly sales across four stores.",C,Synthetic development record
-2020,Slot 2,QA,Arithmetic,Percentages,Easy,Synthetic MCQ,"A sample question asks for the percentage increase between two values.",A,Synthetic development record
-2021,Slot 1,VARC,Reading Comprehension,Inference,Hard,Synthetic MCQ,"A sample passage question asks which conclusion is best supported.",D,Synthetic development record
-2021,Slot 1,DILR,Logical Reasoning,Arrangements,Medium,Synthetic TITA,"Place five sample participants into a sequence using the stated clues.",4-2-5-1-3,Synthetic development record
-2021,Slot 2,QA,Algebra,Linear Equations,Medium,Synthetic MCQ,"Solve a sample pair of linear equations.",B,Synthetic development record
-2021,Slot 2,QA,Geometry,Triangles,Hard,Synthetic MCQ,"A sample triangle problem asks for an unknown angle.",C,Synthetic development record
-2022,Slot 1,VARC,Verbal Ability,Summary,Easy,Synthetic MCQ,"Choose the best summary for a short synthetic paragraph.",A,Synthetic development record
-2022,Slot 1,DILR,Data Interpretation,Charts,Hard,Synthetic MCQ,"A sample chart compares category totals over three years.",D,Synthetic development record
-2022,Slot 2,QA,Arithmetic,Time and Work,Medium,Synthetic TITA,"A sample work-rate problem asks how long two people take together.",12,Synthetic development record
-2022,Slot 2,DILR,Logical Reasoning,Games and Tournaments,Medium,Synthetic MCQ,"A sample tournament puzzle asks which outcome is possible.",B,Synthetic development record
+year,slot,section,topic,subtopic,question_type,difficulty,concepts,estimated_time_seconds,pattern_tags,source_reference
+2020,Slot 1,VARC,Reading Comprehension,Main Idea,MCQ,Medium,central_idea; evidence,150,passage_inference; main_idea,Synthetic test metadata record
+2020,Slot 1,VARC,Verbal Ability,Para Jumbles,TITA,Medium,sequence; logical_flow,150,ordering; coherence,Synthetic test metadata record
+2020,Slot 2,DILR,Data Interpretation,Tables,MCQ,Easy,table_reading; comparison,90,comparison; data_reading,Synthetic test metadata record
+2020,Slot 2,QA,Arithmetic,Percentages,MCQ,Easy,percentage_change; proportional_reasoning,75,calculation; base_value,Synthetic test metadata record
+2021,Slot 1,VARC,Reading Comprehension,Inference,MCQ,Hard,evidence; inference,180,passage_inference; evidence,Synthetic test metadata record
+2021,Slot 1,DILR,Logical Reasoning,Arrangements,TITA,Medium,ordering_constraints; adjacency,150,arrangement; constraint_tracking,Synthetic test metadata record
+2021,Slot 2,QA,Algebra,Linear Equations,MCQ,Medium,linear_equation; inverse_operation,120,equation; algebraic_reasoning,Synthetic test metadata record
+2021,Slot 2,QA,Geometry,Triangles,MCQ,Hard,angle_properties; geometry,180,diagram; theorem_application,Synthetic test metadata record
+2022,Slot 1,VARC,Verbal Ability,Summary,MCQ,Easy,main_claim; supporting_detail,120,summary; central_idea,Synthetic test metadata record
+2022,Slot 1,DILR,Data Interpretation,Charts,MCQ,Hard,chart_reading; comparison,180,comparison; multi_step,Synthetic test metadata record
+2022,Slot 2,QA,Arithmetic,Time and Work,TITA,Medium,individual_rates; combined_rate,150,rate; work_equivalence,Synthetic test metadata record
+2022,Slot 2,DILR,Logical Reasoning,Games and Tournaments,MCQ,Medium,round_robin; counting,150,pairing; counting,Synthetic test metadata record

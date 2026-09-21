@@ -34,6 +34,8 @@ export const api = {
   analysisTopics: () => get("/analysis/topics"),
   analysisDifficulty: () => get("/analysis/difficulty"),
   analysisTrends: () => get("/analysis/trends"),
+  analysisPatterns: () => get("/analysis/patterns"),
+  analysisSummary: () => get("/analysis/summary"),
   startPractice: (body) => post("/practice/start", body),
   startAdaptivePractice: (body) => post("/practice/adaptive-start", body),
   getRecommendation: (section) => get(`/practice/recommendation${section ? `?section=${section}` : ""}`),
