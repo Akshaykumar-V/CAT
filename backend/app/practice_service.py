@@ -79,6 +79,11 @@ def _to_practice_question(
     return PracticeQuestion(
         question_id=question.id,
         question_order=session_question.question_order,
+        section=question.section,
+        topic=question.topic,
+        subtopic=question.subtopic,
+        difficulty=question.difficulty,
+        source=question.source,
         question_text=question.question_text,
         options=_question_options(question),
         answered=session_question.selected_answer is not None,

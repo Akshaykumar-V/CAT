@@ -1,6 +1,7 @@
 """Pydantic schemas used to validate question data."""
 
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -124,6 +125,49 @@ class GeneratedQuestionBatch(BaseModel):
     questions: list[GeneratedQuestion]
 
 
+class QuestionBlueprint(BaseModel):
+    """Controlled structure that an original question must target."""
+
+    section: Literal["VARC", "DILR", "QA"]
+    topic: str
+    subtopic: str
+    question_type: Literal["MCQ"]
+    difficulty: Literal["Easy", "Medium", "Hard"]
+    concepts: list[str] = Field(min_length=1)
+    number_of_steps: int = Field(ge=1, le=8)
+    reasoning_level: Literal["low", "medium", "high"]
+    calculation_load: Literal["low", "medium", "high"]
+    information_density: Literal["low", "medium", "high"]
+    trap_type: str
+    expected_time_seconds: int = Field(ge=15, le=600)
+
+
+class QuestionValidation(BaseModel):
+    """Public quality report for a generated question."""
+
+    valid: bool
+    checks_passed: list[str] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
+    errors: list[str] = Field(default_factory=list)
+
+
+class ValidatedQuestionResponse(BaseModel):
+    """Question, blueprint, and quality report returned by the validated API."""
+
+    question: GeneratedQuestion
+    blueprint: QuestionBlueprint
+    validation: QuestionValidation
+
+
+class AIQuestionResponse(BaseModel):
+    """Public response for provider-backed generation."""
+
+    question: GeneratedQuestion
+    blueprint: QuestionBlueprint
+    generator: Literal["llm", "template"]
+    validation: QuestionValidation
+
+
 class PracticeStartRequest(BaseModel):
     """Input for starting a timed practice session."""
 
@@ -144,6 +188,21 @@ class PracticeStartRequest(BaseModel):
     def validate_practice_difficulty(cls, value: str) -> str:
         if value not in VALID_DIFFICULTIES:
             raise ValueError("difficulty must be Easy, Medium, or Hard")
+        return value
+
+
+class AdaptivePracticeStartRequest(BaseModel):
+    """Input for starting a history-aware mixed-difficulty session."""
+
+    section: str
+    question_count: int = Field(ge=1, le=20)
+    time_limit_seconds: int = Field(ge=60, le=7200)
+
+    @field_validator("section")
+    @classmethod
+    def validate_adaptive_section(cls, value: str) -> str:
+        if value not in VALID_SECTIONS:
+            raise ValueError("section must be VARC, DILR, or QA")
         return value
 
 
@@ -168,6 +227,11 @@ class PracticeQuestion(BaseModel):
 
     question_id: int
     question_order: int
+    section: str
+    topic: str
+    subtopic: str | None = None
+    difficulty: str
+    source: str
     question_text: str
     options: dict[str, str]
     answered: bool

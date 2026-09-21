@@ -4,6 +4,8 @@ __pycache__/
 .pytest_cache/
 .venv/
 venv/
+frontend/node_modules/
+frontend/dist/
 
 # SQLite database files
 *.db
@@ -11,3 +13,5 @@ venv/
 
 # Environment files
 .env
+.env.*
+!.env.example

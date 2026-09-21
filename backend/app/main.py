@@ -1,9 +1,13 @@
 """FastAPI application entry point."""
 
 from fastapi import Depends, FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
 from . import models
+from .adaptive_service import create_adaptive_session, recommendation
+from .ai_question_service import generate_ai_question
+from .blueprint_service import generate_blueprint
 from .analysis import (
     analysis_overview,
     difficulty_distribution,
@@ -17,24 +21,45 @@ from .analysis import (
 )
 from .database import Base, engine, get_db
 from .practice_service import create_session, finish_session, get_session, submit_answer
+from .performance_service import (
+    difficulty_performance,
+    overall_performance,
+    performance_dashboard,
+    section_performance,
+    topic_performance,
+    weak_topics,
+)
 from .question_generator import generate_question
 from .schemas import (
     GeneratedQuestion,
     GeneratedQuestionBatch,
     QuestionGenerationBatchRequest,
     QuestionGenerationRequest,
+    AdaptivePracticeStartRequest,
+    AIQuestionResponse,
     PracticeAnswerRequest,
     PracticeAnswerResponse,
     PracticeSessionResponse,
     PracticeStartRequest,
     PracticeSummary,
+    QuestionBlueprint,
+    ValidatedQuestionResponse,
 )
+from .validated_question_service import generate_validated_question_or_http
 
 
 # Create the initial tables when the application starts.
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="CAT Prep AI API", version="0.1.0")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # The sample file contains only synthetic metadata records for development.
 pyq_data = load_pyq_data()
@@ -95,7 +120,7 @@ def get_topic_trends() -> dict[str, object]:
 @app.post("/questions/generate", response_model=GeneratedQuestion)
 def generate_single_question(request: QuestionGenerationRequest) -> GeneratedQuestion:
     """Generate one original CAT-style question from a supported template."""
-    return generate_question(request)
+    return generate_validated_question_or_http(request).question
 
 
 @app.post("/questions/generate-batch", response_model=GeneratedQuestionBatch)
@@ -103,8 +128,33 @@ def generate_question_batch(
     request: QuestionGenerationBatchRequest,
 ) -> GeneratedQuestionBatch:
     """Generate a requested number of original CAT-style questions."""
-    questions = [generate_question(request) for _ in range(request.count)]
+    questions = [
+        generate_validated_question_or_http(request).question
+        for _ in range(request.count)
+    ]
     return GeneratedQuestionBatch(questions=questions)
+
+
+@app.post("/questions/blueprint", response_model=QuestionBlueprint)
+def create_question_blueprint(request: QuestionGenerationRequest) -> QuestionBlueprint:
+    """Return the structural blueprint for a supported original question."""
+    return generate_blueprint(request)
+
+
+@app.post("/questions/generate-validated", response_model=ValidatedQuestionResponse)
+def generate_validated_question_endpoint(
+    request: QuestionGenerationRequest,
+) -> ValidatedQuestionResponse:
+    """Generate, validate, and return an original question with its blueprint."""
+    return generate_validated_question_or_http(request)
+
+
+@app.post("/questions/generate-ai", response_model=AIQuestionResponse)
+def generate_ai_question_endpoint(
+    request: QuestionGenerationRequest,
+) -> AIQuestionResponse:
+    """Generate an original question with an optional LLM and safe fallback."""
+    return generate_ai_question(request)
 
 
 @app.post("/practice/start", response_model=PracticeSessionResponse)
@@ -113,6 +163,22 @@ def start_practice_session(
 ) -> PracticeSessionResponse:
     """Start a timed session populated with original generated questions."""
     return create_session(db, request)
+
+
+@app.post("/practice/adaptive-start", response_model=PracticeSessionResponse)
+def start_adaptive_practice_session(
+    request: AdaptivePracticeStartRequest, db: Session = Depends(get_db)
+) -> PracticeSessionResponse:
+    """Start a mixed-difficulty session based on completed practice history."""
+    return create_adaptive_session(db, request)
+
+
+@app.get("/practice/recommendation")
+def get_practice_recommendation(
+    section: str | None = None, db: Session = Depends(get_db)
+) -> dict[str, object]:
+    """Recommend a section, topics, and difficulties for the next practice session."""
+    return recommendation(db, section)
 
 
 @app.get("/practice/{session_id}", response_model=PracticeSessionResponse)
@@ -139,3 +205,39 @@ def finish_practice_session(
 ) -> PracticeSummary:
     """End a session and return its score summary."""
     return finish_session(db, session_id)
+
+
+@app.get("/performance/overview")
+def get_performance_overview(db: Session = Depends(get_db)) -> dict[str, object]:
+    """Return overall metrics based only on completed practice sessions."""
+    return overall_performance(db)
+
+
+@app.get("/performance/sections")
+def get_performance_sections(db: Session = Depends(get_db)) -> list[dict[str, object]]:
+    """Return section-level metrics from completed practice sessions."""
+    return section_performance(db)
+
+
+@app.get("/performance/topics")
+def get_performance_topics(db: Session = Depends(get_db)) -> list[dict[str, object]]:
+    """Return topic-level metrics and transparent performance categories."""
+    return topic_performance(db)
+
+
+@app.get("/performance/difficulty")
+def get_performance_difficulty(db: Session = Depends(get_db)) -> list[dict[str, object]]:
+    """Return difficulty-level metrics from completed practice sessions."""
+    return difficulty_performance(db)
+
+
+@app.get("/performance/weak-topics")
+def get_weak_topics(db: Session = Depends(get_db)) -> dict[str, list[dict[str, object]]]:
+    """Group topics using the documented accuracy thresholds."""
+    return weak_topics(db)
+
+
+@app.get("/performance/dashboard")
+def get_performance_dashboard(db: Session = Depends(get_db)) -> dict[str, object]:
+    """Return a concise combined performance summary."""
+    return performance_dashboard(db)
