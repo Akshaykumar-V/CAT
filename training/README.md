@@ -11,6 +11,9 @@ python training/train_qa_lora.py
 python -m training.evaluate_qa --samples 20
 ```
 
+Alternatively, open `CAT_QA_Colab.ipynb` in Colab, select a GPU runtime, and upload `training_bundle.zip` when prompted.
+Rebuild the upload archive after editing the scripts with `python training/make_bundle.py`.
+
 `prepare_aqua.py` downloads the public dataset, keeps algebra-cue questions with four distinct converted options, and writes `training/output/train.jsonl` and `validation.jsonl`. The official validation split is not used for training. The training script saves the adapter in `training/adapter/` and reports validation loss. Keep the source license and attribution with any redistributed training data or model.
 
 The dataset has no CAT difficulty labels; converted examples use `Medium` as a placeholder. AQuA-RAT rationales can contain mistakes. `evaluate_qa.py` reports JSON/schema failures and six-word overlap with training questions; it cannot verify mathematical correctness. Before using the adapter in the app, manually review generated questions and answers, check for near-copies of training questions, and verify a separate inference endpoint can serve the adapter. Render's free CPU service is not a GPU training or model-serving environment. The current app continues using its template/provider pipeline until that review is complete.
