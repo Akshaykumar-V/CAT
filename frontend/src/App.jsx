@@ -95,6 +95,7 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState("");
+  const [accessCode, setAccessCode] = useState("");
 
   const loadStudyData = () => {
     setLoading(true);
@@ -201,6 +202,16 @@ export default function App() {
   }
 
   if (error && !session && !mockSession) {
+    if (error.includes("Access code required")) {
+      return <div className="app-frame"><main className="state-panel error-state">
+        <div><h1>Open your study desk</h1><p>Enter the access code for this deployment.</p>
+          <form onSubmit={(event) => { event.preventDefault(); sessionStorage.setItem("cat-prep-access-token", accessCode.trim()); loadStudyData(); }}>
+            <input type="password" value={accessCode} onChange={(event) => setAccessCode(event.target.value)} aria-label="Access code" required />
+            <button className="button button-dark" type="submit">Continue</button>
+          </form>
+        </div>
+      </main></div>;
+    }
     return (
       <div className="app-frame">
         <AppHeader view={view} onNavigate={navigate} />

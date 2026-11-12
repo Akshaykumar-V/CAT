@@ -20,3 +20,11 @@ def test_root_endpoint_returns_running_message() -> None:
 
     assert response.status_code == 200
     assert response.json() == {"message": "CAT Prep AI API is running"}
+
+
+def test_access_token_protects_study_data(monkeypatch) -> None:
+    monkeypatch.setenv("APP_ACCESS_TOKEN", "test-secret")
+    assert client.get("/health").status_code == 200
+    assert client.get("/performance/dashboard").status_code == 401
+    assert client.get("/performance/dashboard", headers={"Authorization": "Bearer wrong"}).status_code == 401
+    assert client.get("/performance/dashboard", headers={"Authorization": "Bearer test-secret"}).status_code == 200

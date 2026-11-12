@@ -1,13 +1,18 @@
 """Database configuration for the application."""
 
+import os
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
 
-DATABASE_URL = "sqlite:///./cat_prep_ai.db"
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./cat_prep_ai.db")
 
 # SQLite needs this flag because FastAPI may handle a request on a different thread.
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+engine = create_engine(
+    DATABASE_URL,
+    connect_args={"check_same_thread": False} if DATABASE_URL.startswith("sqlite:") else {},
+)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 

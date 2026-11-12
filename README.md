@@ -1,8 +1,30 @@
 # CAT Prep AI
 
-CAT Prep AI is a one-day MVP foundation for helping CAT aspirants practise VARC, DILR, and QA. Future work will use CAT previous-year-question (PYQ) patterns to support original CAT-style practice, timed sessions, and performance tracking.
+CAT Prep AI is a single-user MVP for practising VARC, DILR, and QA. It includes original question generation, adaptive and timed practice, full mocks, performance tracking, and a React frontend.
 
-This repository currently includes a small FastAPI backend, a SQLite question model, Pydantic validation schemas, a synthetic PYQ metadata CSV, Pandas-based pattern analysis, an original template-based question generator, timed practice-session APIs, and completed-session performance analysis. It does not yet include a frontend, authentication, external AI generation, or deployment.
+The default metadata is synthetic and is not a verified CAT previous-year dataset. Question generation uses templates unless an external LLM provider is configured. Docker Compose packages the frontend and API together, persists SQLite data, and requires a shared access code. This is a single-user deployment; it does not provide separate student accounts.
+
+## Deploy: Render API and Vercel frontend
+
+1. Push this repository to GitHub. In Render, create a Blueprint from the root `render.yaml`. This uses Render's free web-service plan. During setup, provide a long random `APP_ACCESS_TOKEN`. For `CORS_ORIGINS`, use the final Vercel origin, such as `https://your-project.vercel.app` (no trailing slash).
+2. Wait for Render `/health` to return `{"status":"healthy"}`. Copy its HTTPS service URL, such as `https://cat-prep-ai-api.onrender.com`.
+3. In Vercel, import the same repository and set **Root Directory** to `frontend`. Set the `VITE_API_URL` environment variable to the Render HTTPS URL. Deploy the project.
+4. If Vercel assigns a different domain from the one entered on Render, update Render's `CORS_ORIGINS` to the exact Vercel origin and redeploy the API. Open the Vercel site and enter the Render access code.
+
+Set `VITE_API_URL` for Vercel's Production and Preview environments separately if both are used. Add each allowed preview origin to Render's comma-separated `CORS_ORIGINS`. The access code protects a **single shared account**; do not share it with multiple students expecting separate progress. External LLM generation is optional and requires Render `LLM_API_KEY`, `LLM_MODEL`, and `LLM_BASE_URL` environment variables.
+
+This free Render deployment is a **temporary demo**. Its SQLite database and imported metadata are stored on an ephemeral filesystem and may disappear after a restart or redeploy. Render may also spin down the service after inactivity, causing a slow first request. Use a persistent disk or external database before relying on saved progress.
+
+## Alternative: deploy both services in one Docker container
+
+1. Install Docker Engine and Docker Compose on the host.
+2. Copy `.env.example` to `.env` and set `APP_ACCESS_TOKEN` to a long random secret. Set the optional `LLM_*` variables only if you want provider-backed generation.
+3. Run `docker compose up --build -d` from the repository root.
+4. Open `http://HOST:8000/app` and enter the access code. The API health endpoint is `http://HOST:8000/health`.
+
+The `cat-prep-data` Docker volume stores the SQLite database across container restarts and rebuilds. Back it up before moving hosts. Put an HTTPS reverse proxy in front of port 8000 before exposing the app on the public internet. Keep the access code private; everyone using it shares the same progress. For local development, the API remains open when `APP_ACCESS_TOKEN` is unset.
+
+Before claiming CAT pattern accuracy, import a verified metadata-only CSV using the documented schema in `data/README.md`. The bundled CSV is synthetic. In the Docker Compose deployment, imported metadata is saved to the persistent volume and loaded again on restart. In the free Render demo, it can disappear on restart.
 
 ## Current architecture
 

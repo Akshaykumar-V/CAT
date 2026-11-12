@@ -1,14 +1,20 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+const API_BASE_URL = (import.meta.env.VITE_API_URL ?? (import.meta.env.DEV ? "http://127.0.0.1:8000" : "")).replace(/\/$/, "");
+
+const accessToken = () => typeof sessionStorage === "undefined" ? "" : sessionStorage.getItem("cat-prep-access-token") || "";
 
 async function request(path, options = {}) {
   let response;
   try {
     response = await fetch(`${API_BASE_URL}${path}`, {
-      headers: { "Content-Type": "application/json", ...options.headers },
+      headers: {
+        "Content-Type": "application/json",
+        ...(accessToken() ? { Authorization: `Bearer ${accessToken()}` } : {}),
+        ...options.headers,
+      },
       ...options,
     });
   } catch {
-    throw new Error("The backend is unavailable. Start FastAPI and try again.");
+    throw new Error("The study service is unavailable. Please try again shortly.");
   }
 
   if (!response.ok) {

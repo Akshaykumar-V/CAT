@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: cat-prep-ai-api
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile.render
+    dockerContext: .
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        value: sqlite:////tmp/cat_prep_ai.db
+      - key: PYQ_METADATA_PATH
+        value: /tmp/pyq_metadata.csv
+      - key: APP_ACCESS_TOKEN
+        sync: false
+      - key: REQUIRE_ACCESS_TOKEN
+        value: "1"
+      - key: CORS_ORIGINS
+        sync: false

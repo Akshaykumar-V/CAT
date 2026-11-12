@@ -1,7 +1,13 @@
 """FastAPI application entry point."""
 
+import os
+import secrets
+from pathlib import Path
+
 from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 
 from . import models
@@ -76,20 +82,35 @@ from .validated_question_service import generate_validated_question_or_http
 
 
 # Create the initial tables when the application starts.
+if os.getenv("REQUIRE_ACCESS_TOKEN") == "1" and not os.getenv("APP_ACCESS_TOKEN"):
+    raise RuntimeError("APP_ACCESS_TOKEN is required for this deployment")
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="CAT Prep AI API", version="0.1.0")
 
+allowed_origins = [origin.strip() for origin in os.getenv("CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173").split(",") if origin.strip()]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# The sample file contains only synthetic metadata records for development.
-pyq_data = load_pyq_data()
+
+@app.middleware("http")
+async def require_access_token(request: Request, call_next):
+    """Protect study data when a deployment access token is configured."""
+    token = os.getenv("APP_ACCESS_TOKEN", "")
+    if token and request.url.path not in {"/", "/health", "/app"} and not request.url.path.startswith("/assets/"):
+        supplied = request.headers.get("authorization", "")
+        if not secrets.compare_digest(supplied, f"Bearer {token}"):
+            return JSONResponse({"detail": "Access code required or invalid."}, status_code=401)
+    return await call_next(request)
+
+# Use an imported metadata file when available; otherwise use the synthetic sample.
+metadata_path = Path(os.environ["PYQ_METADATA_PATH"]) if os.getenv("PYQ_METADATA_PATH") else None
+pyq_data = load_pyq_data(metadata_path) if metadata_path and metadata_path.is_file() else load_pyq_data()
 
 
 @app.get("/")
@@ -164,6 +185,11 @@ async def import_metadata(request: Request) -> dict[str, object]:
     result = import_metadata_csv(source)
     if result.report["valid_rows"]:
         pyq_data = result.data
+        if metadata_path:
+            metadata_path.parent.mkdir(parents=True, exist_ok=True)
+            temporary_path = metadata_path.with_suffix(".tmp")
+            result.data.to_csv(temporary_path, index=False)
+            temporary_path.replace(metadata_path)
     return {"report": result.report, "metadata": result.data.to_dict(orient="records")}
 
 
@@ -356,6 +382,16 @@ def get_mock_result_endpoint(mock_session_id: int, db: Session = Depends(get_db)
 @app.get("/mocks/{mock_session_id}/review", response_model=MockReviewResponse)
 def get_mock_review_endpoint(mock_session_id: int, db: Session = Depends(get_db)) -> MockReviewResponse:
     return mock_review(db, mock_session_id)
+
+
+# The Docker image bundles the built frontend beside the backend package.
+frontend_dist = Path(__file__).resolve().parents[2] / "frontend" / "dist"
+if frontend_dist.is_dir():
+    app.mount("/assets", StaticFiles(directory=frontend_dist / "assets"), name="assets")
+
+    @app.get("/app", include_in_schema=False)
+    def serve_app() -> FileResponse:
+        return FileResponse(frontend_dist / "index.html")
 
 
 @app.get("/performance/overview")

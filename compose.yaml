@@ -1,0 +1,24 @@
+services:
+  cat-prep-ai:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      APP_ACCESS_TOKEN: ${APP_ACCESS_TOKEN:?Set APP_ACCESS_TOKEN in .env}
+      REQUIRE_ACCESS_TOKEN: "1"
+      DATABASE_URL: sqlite:////data/cat_prep_ai.db
+      PYQ_METADATA_PATH: /data/pyq_metadata.csv
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_MODEL: ${LLM_MODEL:-}
+      LLM_BASE_URL: ${LLM_BASE_URL:-}
+    volumes:
+      - cat-prep-data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=5)"]
+      interval: 30s
+      timeout: 8s
+      retries: 3
+
+volumes:
+  cat-prep-data:
