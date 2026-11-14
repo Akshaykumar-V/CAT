@@ -20,3 +20,16 @@ def test_root_endpoint_returns_running_message() -> None:
 
     assert response.status_code == 200
     assert response.json() == {"message": "CAT Prep AI API is running"}
+
+
+def test_deployed_frontend_cors_preflight() -> None:
+    response = client.options(
+        "/health",
+        headers={
+            "Origin": "https://cat-1-m5cd.onrender.com",
+            "Access-Control-Request-Method": "GET",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == "https://cat-1-m5cd.onrender.com"
